@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MBA Return Data</title>
+    <style>
+        body {
+            display: flex;
+            background-color: #FFFFFF; /* Set background color to White */
+        }
+
+        #main-content {
+            display: flex;
+            flex-direction: column;
+            width: 70%;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+            margin-left: 0; /* Align to the left */
+            margin-right: auto;
+            text-align: left; /* Align table content to the left */
+        }
+
+        th,
+        td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        .highlight-row {
+            background-color: #a5d6a7;
+        }
+
+        .currency {
+            text-align: right;
+        }
+
+        #summary-table {
+            width: 30%;
+            padding: 20px;
+            background-color: #18453B; /* Spartan Green */
+            color: #FFFFFF; /* White text color */
+            margin-left: auto; /* Align to the right */
+        }
+
+        #summary-table h2 {
+            color: #FFFFFF; /* Kelly Green */
+        }
+
+        #summary-table table {
+            width: 100%;
+            margin-top: 10px;
+            color: #FFFFFF;
+        }
+
+        #summary-table th,
+        #summary-table td {
+            border: 4px solid #008208; /* Kelly Green border */
+            background-color: #18453B; /* Spartan Green */
+            padding: 8px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="main-content">
+        <h1>Detailed Return Data Sheet</h1>
+        <!-- Render the HTML with Jinja2 -->
+        {{ result_html | safe }}
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var highlightedRowValue = highlightClosestToZeroRow();
+                var lastRunningTotal = getLastRunningTotal();
+                updateSummaryTable(highlightedRowValue, lastRunningTotal);
+            });
+
+            function highlightClosestToZeroRow() {
+                var table = document.querySelector('table');
+                var rows = table.querySelectorAll('tr');
+
+                var closestToZeroIndex = -1;
+                var closestToZeroDiff = Number.MAX_VALUE;
+
+                for (var i = 1; i < rows.length; i++) {
+                    var cells = rows[i].querySelectorAll('td');
+                    var runningTotal = parseFloat(cells[cells.length - 1].innerText.replace('$', '').replace(',', '')); // Assuming 'Running Total' is the last column
+                    var diffToZero = Math.abs(runningTotal);
+
+                    if (diffToZero < closestToZeroDiff && runningTotal >= 0) {
+                        closestToZeroDiff = diffToZero;
+                        closestToZeroIndex = i;
+                    }
+                }
+
+                if (closestToZeroIndex !== -1) {
+                    rows[closestToZeroIndex].classList.add('highlight-row');
+                }
+
+                return closestToZeroIndex;
+            }
+
+            function getLastRunningTotal() {
+                var table = document.querySelector('table');
+                var rows = table.querySelectorAll('tr');
+                var lastRow = rows[rows.length - 1];
+                var cells = lastRow.querySelectorAll('td');
+                var lastRunningTotal = parseFloat(cells[cells.length - 1].innerText.replace('$', '').replace(',', ''));
+                return lastRunningTotal;
+            }
+
+            function updateSummaryTable(highlightedRowValue, lastRunningTotal) {
+                var summaryTable = document.querySelector('#summary-table');
+                var table = document.querySelector('table');
+                var highlightedRow = table.querySelectorAll('tr')[highlightedRowValue];
+                var cells = highlightedRow.querySelectorAll('td');
+
+                var summaryHtml = `
+                    <h2>Executive Summary</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Category</th>
+                                <th>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Break-even Year</td>
+                                <td>${cells[0].innerText}</td>
+                            </tr>
+                            <tr>
+                                <td>Lifelong Return</td>
+                                <td class="currency">${formatCurrency(lastRunningTotal)}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                `;
+
+                summaryTable.innerHTML = summaryHtml;
+            }
+
+            function formatCurrency(value) {
+                return new Intl.NumberFormat('en-US', {
+                    style: 'currency',
+                    currency: 'USD'
+                }).format(value);
+            }
+        </script>
+    </div>
+
+    <div id="summary-table"></div>
+</body>
+
+</html>
