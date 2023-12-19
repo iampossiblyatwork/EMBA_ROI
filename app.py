@@ -75,16 +75,17 @@ def calculator(start, age, retire_age, current_salary, expected_salary, esalg,te
     df['Years'] = years
     df['Pre-MBA Salary'] = growthrate(current_salary, esalg, len(years))
     df['Post-MBA Salary'] = exgrowthrate(current_salary, expected_salary, esalg, len(years), term)
-    print((tuitioncalc(tuition, term)))
+    df['Pre-MBA Salary After Tax'] = df['Pre-MBA Salary'] - df['Pre-MBA Salary'].apply(lambda x: calculate_tax(x))
+    df['Post-MBA Salary After Tax'] = df['Post-MBA Salary'] - df['Post-MBA Salary'].apply(lambda x: calculate_tax(x))
     uneven_list = tuitioncalc(tuition, term)
     uneven_list += [float('nan')] * (len(df) - len(uneven_list))
     df['Tuition Cost'] = uneven_list
     df['Tuition Cost'].fillna(0, inplace=True)
-    df['Delta'] = round(df['Post-MBA Salary'] - df['Pre-MBA Salary'] + df['Tuition Cost'], 2)
+    df['Delta'] = round(df['Post-MBA Salary After Tax'] - df['Pre-MBA Salary After Tax'] + df['Tuition Cost'], 2)
     df['Running Total'] = df['Delta'].cumsum()
 
 
-    currency_columns = ['Pre-MBA Salary', 'Post-MBA Salary', 'Tuition Cost', 'Delta','Running Total']
+    currency_columns = ['Pre-MBA Salary', 'Post-MBA Salary', 'Pre-MBA Salary After Tax','Post-MBA Salary After Tax', 'Tuition Cost', 'Delta','Running Total']
     for column in currency_columns:
         df[column] = df[column].map('${:,.2f}'.format)
 
