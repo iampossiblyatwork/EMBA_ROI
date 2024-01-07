@@ -71,16 +71,15 @@
             padding: 8px;
             text-align: left;
         }
-        @media only screen and (min-width: 768px) {
-            /* Apply styles for screens larger than 768px */
+        @media only screen and (max-width: 767px) {
             #main-content {
-                width: 70%;
-                margin: 0 auto; /* Center the content */
+                width: 100%; /* Make main content take up full width on mobile */
             }
 
             #summary-table {
-                width: 30%;
-                margin-top: 0; /* Remove top margin */
+                width: 100%; /* Make summary table take up full width on mobile */
+                margin-left: 0; /* Align summary table to the left on mobile */
+                margin-top: 20px; /* Add top margin on mobile */
             }
         }
     </style>
