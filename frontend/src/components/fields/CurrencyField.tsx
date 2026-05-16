@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 interface Props {
   id: string;
@@ -7,7 +7,7 @@ interface Props {
   onChange: (next: number) => void;
   error?: string;
   presets?: { label: string; value: number }[];
-  hint?: string;
+  hint?: ReactNode;
   min?: number;
   max?: number;
 }

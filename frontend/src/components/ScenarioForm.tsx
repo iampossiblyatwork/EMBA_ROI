@@ -115,6 +115,19 @@ export function ScenarioForm({ title, accent, value, onChange, errors, onRemove 
             onChange={(n) => set("tuition", n)}
             error={errors?.tuition}
             presets={TUITION_PRESETS}
+            hint={
+              <>
+                MSU Broad tuition includes books, materials, and meals.{" "}
+                <a
+                  href="https://broad.msu.edu/masters/executive-mba/tuition/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-spartan-green underline underline-offset-2 hover:text-spartan-kelly"
+                >
+                  Source ↗
+                </a>
+              </>
+            }
           />
         </div>
 
