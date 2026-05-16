@@ -76,8 +76,8 @@ export function ScenarioForm({ title, accent, value, onChange, errors, onRemove 
             label="Enrollment Year"
             value={value.start_year}
             onChange={(n) => set("start_year", n)}
-            min={2024}
-            max={2030}
+            min={new Date().getFullYear() - 1}
+            max={new Date().getFullYear() + 5}
           />
           <SliderField
             id={`${accent}-age`}
