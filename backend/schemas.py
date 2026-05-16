@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from .tax import FILING_STATUSES
+from .tax import FILING_STATUSES, LATEST_TAX_YEAR, SUPPORTED_TAX_YEARS
 
 
 @dataclass
@@ -17,6 +17,7 @@ class ScenarioInput:
     term_years: int
     tuition: float
     filing_status: str = "single"
+    tax_year: int = LATEST_TAX_YEAR
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "ScenarioInput":
@@ -31,6 +32,7 @@ class ScenarioInput:
                 term_years=int(payload["term_years"]),
                 tuition=float(payload["tuition"]),
                 filing_status=str(payload.get("filing_status", "single")),
+                tax_year=int(payload.get("tax_year", LATEST_TAX_YEAR)),
             )
         except (KeyError, TypeError, ValueError) as exc:
             raise ValueError(f"Invalid input payload: {exc}") from exc
@@ -40,6 +42,8 @@ def validate(inp: ScenarioInput) -> dict[str, str]:
     errors: dict[str, str] = {}
     if inp.filing_status not in FILING_STATUSES:
         errors["filing_status"] = f"Must be one of {', '.join(FILING_STATUSES)}."
+    if inp.tax_year not in SUPPORTED_TAX_YEARS:
+        errors["tax_year"] = f"Must be one of {', '.join(map(str, SUPPORTED_TAX_YEARS))}."
     if inp.start_year < 1900 or inp.start_year > 2200:
         errors["start_year"] = "Year must be between 1900 and 2200."
     if inp.age < 16 or inp.age > 100:
@@ -83,6 +87,7 @@ class ScenarioResult:
     break_even_age: int | None = None
     lifelong_return: float = 0.0
     total_tuition: float = 0.0
+    tax_year: int = LATEST_TAX_YEAR
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -91,4 +96,5 @@ class ScenarioResult:
             "break_even_age": self.break_even_age,
             "lifelong_return": self.lifelong_return,
             "total_tuition": self.total_tuition,
+            "tax_year": self.tax_year,
         }

@@ -1,4 +1,4 @@
-import { DEFAULT_SCENARIO, FilingStatus, ScenarioInput } from "./types";
+import { DEFAULT_SCENARIO, FilingStatus, LATEST_TAX_YEAR, ScenarioInput } from "./types";
 
 const KEY_MAP: Record<keyof ScenarioInput, string> = {
   start_year: "s",
@@ -10,6 +10,7 @@ const KEY_MAP: Record<keyof ScenarioInput, string> = {
   term_years: "t",
   tuition: "tu",
   filing_status: "fs",
+  tax_year: "ty",
 };
 
 const VALID_STATUSES: FilingStatus[] = ["single", "mfj", "hoh"];
@@ -25,6 +26,7 @@ function encodeScenario(prefix: string, s: ScenarioInput): Record<string, string
     [prefix + KEY_MAP.term_years]: String(s.term_years),
     [prefix + KEY_MAP.tuition]: String(s.tuition),
     [prefix + KEY_MAP.filing_status]: s.filing_status,
+    [prefix + KEY_MAP.tax_year]: String(s.tax_year),
   };
 }
 
@@ -53,6 +55,7 @@ function decodeScenario(prefix: string, params: URLSearchParams): ScenarioInput 
     term_years: num("term_years", DEFAULT_SCENARIO.term_years),
     tuition: num("tuition", DEFAULT_SCENARIO.tuition),
     filing_status,
+    tax_year: num("tax_year", LATEST_TAX_YEAR),
   };
 }
 

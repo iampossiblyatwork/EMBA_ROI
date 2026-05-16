@@ -40,6 +40,16 @@ def test_calculate_happy_path(client):
     assert len(body["rows"]) == 36
     assert body["total_tuition"] == 90_000
     assert body["break_even_year"] is not None
+    assert body["tax_year"] == 2026
+
+
+def test_calculate_respects_tax_year(client):
+    resp24 = client.post("/api/calculate", json=_payload(tax_year=2024))
+    resp26 = client.post("/api/calculate", json=_payload(tax_year=2026))
+    assert resp24.status_code == 200
+    assert resp26.status_code == 200
+    # 2026 brackets inflate slightly so a given salary is taxed marginally less.
+    assert resp26.get_json()["lifelong_return"] >= resp24.get_json()["lifelong_return"]
 
 
 def test_calculate_validation_error(client):
