@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/api.ts","./src/format.ts","./src/main.tsx","./src/types.ts","./src/urlState.ts","./src/components/Header.tsx","./src/components/ProjectionTable.tsx","./src/components/RoiChart.tsx","./src/components/ScenarioForm.tsx","./src/components/ShareButton.tsx","./src/components/SummaryCards.tsx"],"version":"5.9.3"}

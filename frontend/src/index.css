@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: theme("fontFamily.sans");
+  }
+}
+
+@layer components {
+  .field-label {
+    @apply text-xs font-semibold uppercase tracking-wide text-spartan-green/80;
+  }
+  .field-input {
+    @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+      shadow-sm transition focus:border-spartan-kelly focus:outline-none
+      focus:ring-2 focus:ring-spartan-kelly/30;
+  }
+  .field-error {
+    @apply mt-1 text-xs font-medium text-red-600;
+  }
+  .card {
+    @apply rounded-2xl bg-white shadow-card ring-1 ring-spartan-green/5;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-lg bg-spartan-kelly
+      px-4 py-2 text-sm font-semibold text-white shadow-sm transition
+      hover:bg-spartan-green focus:outline-none focus:ring-2 focus:ring-spartan-kelly/40
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center rounded-lg border border-spartan-green/20
+      bg-white px-3 py-2 text-sm font-semibold text-spartan-green shadow-sm transition
+      hover:bg-spartan-green hover:text-white;
+  }
+}
