@@ -51,8 +51,12 @@ def build_projection(inp: ScenarioInput) -> ScenarioResult:
     )
     tuition = tuition_series(inp.tuition, inp.term_years, n)
 
-    pre_after_tax = [round(s - calculate_tax(s, inp.filing_status), 2) for s in pre]
-    post_after_tax = [round(s - calculate_tax(s, inp.filing_status), 2) for s in post]
+    pre_after_tax = [
+        round(s - calculate_tax(s, inp.filing_status, inp.tax_year), 2) for s in pre
+    ]
+    post_after_tax = [
+        round(s - calculate_tax(s, inp.filing_status, inp.tax_year), 2) for s in post
+    ]
 
     rows: list[YearRow] = []
     running = 0.0
@@ -85,4 +89,5 @@ def build_projection(inp: ScenarioInput) -> ScenarioResult:
         break_even_age=break_even_age,
         lifelong_return=rows[-1].running_total if rows else 0.0,
         total_tuition=float(inp.tuition),
+        tax_year=inp.tax_year,
     )

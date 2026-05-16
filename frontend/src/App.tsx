@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScenario } from "./api";
 import { Header } from "./components/Header";
 import { ProjectionTable } from "./components/ProjectionTable";
@@ -6,8 +6,39 @@ import { RoiChart } from "./components/RoiChart";
 import { ScenarioForm } from "./components/ScenarioForm";
 import { ShareButton } from "./components/ShareButton";
 import { SummaryCards } from "./components/SummaryCards";
-import { ScenarioInput, ScenarioResult } from "./types";
+import {
+  clampScenario,
+  DEFAULT_SCENARIO,
+  noMbaBaseline,
+  ScenarioInput,
+  ScenarioResult,
+} from "./types";
 import { decodeUrlState, encodeUrlState } from "./urlState";
+
+const STORAGE_KEY = "emba-roi:last-scenario";
+
+interface PersistedState {
+  a: ScenarioInput;
+  b: ScenarioInput | null;
+}
+
+function loadInitial(): PersistedState {
+  if (window.location.search) {
+    return decodeUrlState(window.location.search);
+  }
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as PersistedState;
+      if (parsed && parsed.a) {
+        return { a: clampScenario(parsed.a), b: parsed.b ? clampScenario(parsed.b) : null };
+      }
+    }
+  } catch {
+    // ignore corrupt state
+  }
+  return { a: DEFAULT_SCENARIO, b: null };
+}
 
 function useDebouncedScenario(
   input: ScenarioInput | null,
@@ -49,9 +80,16 @@ function useDebouncedScenario(
 }
 
 export default function App() {
-  const initial = useMemo(() => decodeUrlState(window.location.search), []);
-  const [scenarioA, setScenarioA] = useState<ScenarioInput>(initial.a);
-  const [scenarioB, setScenarioB] = useState<ScenarioInput | null>(initial.b);
+  const initial = useMemo(() => loadInitial(), []);
+  const [scenarioA, setScenarioARaw] = useState<ScenarioInput>(initial.a);
+  const [scenarioB, setScenarioBRaw] = useState<ScenarioInput | null>(initial.b);
+
+  const setScenarioA = useCallback((next: ScenarioInput) => {
+    setScenarioARaw(clampScenario(next));
+  }, []);
+  const setScenarioB = useCallback((next: ScenarioInput | null) => {
+    setScenarioBRaw(next ? clampScenario(next) : null);
+  }, []);
 
   const { result: resultA, errors: errorsA, loading: loadingA } = useDebouncedScenario(scenarioA);
   const { result: resultB, errors: errorsB } = useDebouncedScenario(scenarioB);
@@ -59,18 +97,32 @@ export default function App() {
   useEffect(() => {
     const qs = encodeUrlState(scenarioA, scenarioB);
     window.history.replaceState(null, "", qs);
+    try {
+      window.localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ a: scenarioA, b: scenarioB })
+      );
+    } catch {
+      // localStorage may be unavailable in private mode; non-fatal.
+    }
   }, [scenarioA, scenarioB]);
 
   const toggleB = () => {
     if (scenarioB) {
       setScenarioB(null);
     } else {
-      setScenarioB({ ...scenarioA, tuition: Math.max(0, scenarioA.tuition - 30000) });
+      setScenarioB(noMbaBaseline(scenarioA));
     }
+  };
+
+  const resetAll = () => {
+    setScenarioA(DEFAULT_SCENARIO);
+    setScenarioB(null);
   };
 
   const hasResult = resultA !== null;
   const globalError = errorsA._;
+  const taxYearUsed = resultA?.tax_year ?? scenarioA.tax_year;
 
   return (
     <div className="min-h-screen">
@@ -81,9 +133,12 @@ export default function App() {
             Tweak any input — results update automatically. Add a comparison scenario to weigh two
             options side-by-side.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={toggleB} className="btn-ghost">
-              {scenarioB ? "Hide Scenario B" : "+ Compare a second scenario"}
+              {scenarioB ? "Hide comparison" : "+ Compare to \"no MBA\""}
+            </button>
+            <button type="button" onClick={resetAll} className="btn-ghost">
+              Reset
             </button>
             <ShareButton />
           </div>
@@ -95,9 +150,9 @@ export default function App() {
           </div>
         )}
 
-        <div className={`grid grid-cols-1 gap-6 ${scenarioB ? "lg:grid-cols-2" : ""}`}>
+        <div className={`grid grid-cols-1 gap-6 ${scenarioB ? "xl:grid-cols-2" : ""}`}>
           <ScenarioForm
-            title={scenarioB ? "Scenario A" : "Your Scenario"}
+            title={scenarioB ? "Scenario A — With MBA" : "Your Scenario"}
             accent="a"
             value={scenarioA}
             onChange={setScenarioA}
@@ -105,7 +160,7 @@ export default function App() {
           />
           {scenarioB && (
             <ScenarioForm
-              title="Scenario B"
+              title="Scenario B — Baseline"
               accent="b"
               value={scenarioB}
               onChange={setScenarioB}
@@ -137,8 +192,8 @@ export default function App() {
       </main>
       <footer className="mt-8 border-t border-spartan-green/10 bg-white py-4">
         <p className="mx-auto max-w-7xl px-6 text-xs text-slate-500">
-          Tax brackets use 2024 IRS rates. Estimates are illustrative — consult an advisor for
-          financial decisions.
+          Calculated with {taxYearUsed} federal tax brackets. Estimates are illustrative — consult
+          an advisor for financial decisions.
         </p>
       </footer>
     </div>

@@ -1,4 +1,15 @@
-import { FILING_STATUS_LABELS, FilingStatus, ScenarioInput } from "../types";
+import {
+  FILING_STATUS_HELP,
+  FILING_STATUS_LABELS,
+  FilingStatus,
+  ScenarioInput,
+  SUPPORTED_TAX_YEARS,
+} from "../types";
+import { CurrencyField } from "./fields/CurrencyField";
+import { SegmentedField } from "./fields/SegmentedField";
+import { SelectField } from "./fields/SelectField";
+import { SliderField } from "./fields/SliderField";
+import { YearStepper } from "./fields/YearStepper";
 
 interface Props {
   title: string;
@@ -9,39 +20,27 @@ interface Props {
   onRemove?: () => void;
 }
 
-type NumericKey = Exclude<keyof ScenarioInput, "filing_status">;
+const SALARY_PRESETS = (current: number) => [
+  { label: "Same", value: Math.round(current) },
+  { label: "+10%", value: Math.round(current * 1.1) },
+  { label: "+20%", value: Math.round(current * 1.2) },
+  { label: "+30%", value: Math.round(current * 1.3) },
+  { label: "+50%", value: Math.round(current * 1.5) },
+];
 
-interface FieldDef {
-  key: NumericKey;
-  label: string;
-  step?: number;
-  min?: number;
-  max?: number;
-  unit?: "$" | "%" | "yrs";
-}
-
-const FIELDS: FieldDef[] = [
-  { key: "start_year", label: "Enrollment Year", min: 2000, max: 2100 },
-  { key: "age", label: "Age at Enrollment", min: 16, max: 100 },
-  { key: "retire_age", label: "Retirement Age", min: 16, max: 100 },
-  { key: "current_salary", label: "Current Salary", min: 0, step: 1000, unit: "$" },
-  { key: "expected_salary", label: "Expected Post-MBA Salary", min: 0, step: 1000, unit: "$" },
-  { key: "salary_growth_pct", label: "Annual Salary Growth", min: 0, max: 100, step: 0.1, unit: "%" },
-  { key: "term_years", label: "Program Length", min: 0, max: 10, unit: "yrs" },
-  { key: "tuition", label: "Total Tuition", min: 0, step: 1000, unit: "$" },
+const TUITION_PRESETS = [
+  { label: "MSU Broad EMBA ($89k)", value: 89000 },
+  { label: "Ross EMBA ($200k)", value: 200000 },
+  { label: "Wharton EMBA ($240k)", value: 240000 },
 ];
 
 export function ScenarioForm({ title, accent, value, onChange, errors, onRemove }: Props) {
-  const setField = (key: NumericKey, raw: string) => {
-    const num = raw === "" ? 0 : Number(raw);
-    onChange({ ...value, [key]: Number.isFinite(num) ? num : 0 });
-  };
-
-  const setFiling = (raw: string) => {
-    onChange({ ...value, filing_status: raw as FilingStatus });
+  const set = <K extends keyof ScenarioInput>(key: K, next: ScenarioInput[K]) => {
+    onChange({ ...value, [key]: next });
   };
 
   const accentBg = accent === "a" ? "bg-spartan-green" : "bg-amber-600";
+  const workingYears = Math.max(1, value.retire_age - value.age);
 
   return (
     <section className="card overflow-hidden">
@@ -57,43 +56,130 @@ export function ScenarioForm({ title, accent, value, onChange, errors, onRemove 
           </button>
         )}
       </div>
-      <div className="grid grid-cols-1 gap-4 p-6 sm:grid-cols-2">
-        {FIELDS.map((f) => (
-          <div key={f.key}>
-            <label htmlFor={`${accent}-${f.key}`} className="field-label">
-              {f.label}
-              {f.unit ? <span className="ml-1 text-slate-400">({f.unit})</span> : null}
-            </label>
-            <input
-              id={`${accent}-${f.key}`}
-              type="number"
-              className="field-input mt-1"
-              value={value[f.key]}
-              min={f.min}
-              max={f.max}
-              step={f.step ?? 1}
-              onChange={(e) => setField(f.key, e.target.value)}
-            />
-            {errors?.[f.key] && <p className="field-error">{errors[f.key]}</p>}
-          </div>
-        ))}
-        <div className="sm:col-span-2">
-          <label htmlFor={`${accent}-filing_status`} className="field-label">
-            Filing Status
-          </label>
-          <select
+
+      <div className="space-y-5 p-6">
+        {/* Timing block */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <YearStepper
+            id={`${accent}-start_year`}
+            label="Enrollment Year"
+            value={value.start_year}
+            onChange={(n) => set("start_year", n)}
+            min={2024}
+            max={2030}
+          />
+          <SliderField
+            id={`${accent}-age`}
+            label="Age at Enrollment"
+            value={value.age}
+            onChange={(n) => set("age", n)}
+            min={22}
+            max={65}
+            formatValue={(n) => `${n}`}
+            ticks={[
+              { value: 22, label: "22" },
+              { value: 65, label: "65" },
+            ]}
+          />
+          <SliderField
+            id={`${accent}-retire_age`}
+            label="Retirement Age"
+            value={value.retire_age}
+            onChange={(n) => set("retire_age", n)}
+            min={Math.max(value.age + 1, 50)}
+            max={80}
+            formatValue={(n) => `${n}`}
+            ticks={[
+              { value: 50, label: "50" },
+              { value: 80, label: "80" },
+            ]}
+          />
+        </div>
+
+        {/* Program block */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SegmentedField
+            label="Program Length"
+            value={value.term_years}
+            onChange={(n) => set("term_years", n)}
+            options={[
+              { label: "1 yr", value: 1 },
+              { label: "2 yrs", value: 2 },
+              { label: "3 yrs", value: 3, sublabel: "MSU" },
+            ]}
+          />
+          <CurrencyField
+            id={`${accent}-tuition`}
+            label="Total Tuition"
+            value={value.tuition}
+            onChange={(n) => set("tuition", n)}
+            error={errors?.tuition}
+            presets={TUITION_PRESETS}
+          />
+        </div>
+
+        {/* Salary block */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <CurrencyField
+            id={`${accent}-current_salary`}
+            label="Current Salary"
+            value={value.current_salary}
+            onChange={(n) => set("current_salary", n)}
+            error={errors?.current_salary}
+          />
+          <CurrencyField
+            id={`${accent}-expected_salary`}
+            label="Expected Post-MBA Salary"
+            value={value.expected_salary}
+            onChange={(n) => set("expected_salary", n)}
+            error={errors?.expected_salary}
+            presets={SALARY_PRESETS(value.current_salary)}
+            hint="Pick a multiplier of your current salary, or type a target."
+          />
+        </div>
+
+        <SliderField
+          id={`${accent}-salary_growth_pct`}
+          label="Annual Salary Growth"
+          value={value.salary_growth_pct}
+          onChange={(n) => set("salary_growth_pct", n)}
+          min={0}
+          max={10}
+          step={0.25}
+          formatValue={(n) => `${n.toFixed(2)}%`}
+          ticks={[
+            { value: 0, label: "0%" },
+            { value: 10, label: "10%" },
+          ]}
+          hint={`Applied to both pre- and post-MBA salaries over ${workingYears} working years.`}
+        />
+
+        {/* Tax block */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <SelectField<FilingStatus>
             id={`${accent}-filing_status`}
-            className="field-input mt-1"
+            label="Filing Status"
             value={value.filing_status}
-            onChange={(e) => setFiling(e.target.value)}
-          >
-            {(Object.keys(FILING_STATUS_LABELS) as FilingStatus[]).map((k) => (
-              <option key={k} value={k}>
-                {FILING_STATUS_LABELS[k]}
-              </option>
-            ))}
-          </select>
-          {errors?.filing_status && <p className="field-error">{errors.filing_status}</p>}
+            onChange={(v) => set("filing_status", v)}
+            options={(Object.keys(FILING_STATUS_LABELS) as FilingStatus[]).map((k) => ({
+              label: FILING_STATUS_LABELS[k],
+              value: k,
+            }))}
+            hint={FILING_STATUS_HELP[value.filing_status]}
+            error={errors?.filing_status}
+          />
+          <SelectField<number>
+            id={`${accent}-tax_year`}
+            label="Tax Year"
+            value={value.tax_year}
+            onChange={(v) => set("tax_year", v)}
+            options={SUPPORTED_TAX_YEARS.map((y) => ({
+              label: `${y} brackets${y === Math.max(...SUPPORTED_TAX_YEARS) ? " (latest)" : ""}`,
+              value: y,
+            }))}
+            hint="Federal brackets used for the after-tax calculation."
+            error={errors?.tax_year}
+          />
         </div>
       </div>
     </section>
