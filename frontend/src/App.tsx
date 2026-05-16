@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { calculateScenario } from "./api";
+import { Footer } from "./components/Footer";
 import { Header } from "./components/Header";
 import { ProjectionTable } from "./components/ProjectionTable";
 import { RoiChart } from "./components/RoiChart";
@@ -190,12 +191,7 @@ export default function App() {
           <div className="card p-8 text-center text-sm text-slate-500">Calculating…</div>
         )}
       </main>
-      <footer className="mt-8 border-t border-spartan-green/10 bg-white py-4">
-        <p className="mx-auto max-w-7xl px-6 text-xs text-slate-500">
-          Calculated with {taxYearUsed} federal tax brackets. Estimates are illustrative — consult
-          an advisor for financial decisions.
-        </p>
-      </footer>
+      <Footer taxYearUsed={taxYearUsed} />
     </div>
   );
 }
