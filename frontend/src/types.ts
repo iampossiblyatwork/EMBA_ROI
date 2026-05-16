@@ -41,8 +41,10 @@ export interface ApiError {
 export const SUPPORTED_TAX_YEARS = [2024, 2025, 2026] as const;
 export const LATEST_TAX_YEAR = 2026;
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export const DEFAULT_SCENARIO: ScenarioInput = {
-  start_year: 2026,
+  start_year: CURRENT_YEAR,
   age: 30,
   retire_age: 65,
   current_salary: 100000,
