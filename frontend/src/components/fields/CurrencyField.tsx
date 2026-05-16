@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ChangeEvent, ReactNode, useEffect, useRef, useState } from "react";
 
 interface Props {
   id: string;
@@ -17,13 +17,6 @@ function formatDisplay(n: number): string {
   return n.toLocaleString("en-US");
 }
 
-function parseRaw(raw: string): number | null {
-  const stripped = raw.replace(/[,\s$]/g, "");
-  if (stripped === "" || stripped === "-") return null;
-  const n = Number(stripped);
-  return Number.isFinite(n) ? n : null;
-}
-
 export function CurrencyField({
   id,
   label,
@@ -35,38 +28,68 @@ export function CurrencyField({
   min = 0,
   max,
 }: Props) {
-  // Local string state so the user can clear the field, type partial values,
-  // and have thousands-separator formatting on blur without the parent
-  // resetting them to 0 mid-edit.
+  // Local text buffer so the user can clear the field mid-edit without the
+  // parent snapping the value to 0. Stays in sync with `value` whenever the
+  // field isn't focused (resets, presets, scenario loads).
   const [text, setText] = useState<string>(formatDisplay(value));
   const [focused, setFocused] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!focused) setText(formatDisplay(value));
   }, [value, focused]);
 
-  const handleChange = (raw: string) => {
-    setText(raw);
-    const parsed = parseRaw(raw);
-    if (parsed === null) return;
-    let next = parsed;
-    if (min !== undefined) next = Math.max(min, next);
-    if (max !== undefined) next = Math.min(max, next);
-    onChange(next);
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const el = e.target;
+    const rawValue = el.value;
+    const caret = el.selectionStart ?? rawValue.length;
+    // Number of digits the user wants to keep to the left of the caret.
+    const digitsBeforeCaret = rawValue.slice(0, caret).replace(/[^\d]/g, "").length;
+
+    const digitsOnly = rawValue.replace(/[^\d]/g, "");
+    if (digitsOnly === "") {
+      setText("");
+      return;
+    }
+
+    let n = Number(digitsOnly);
+    if (!Number.isFinite(n)) return;
+    if (min !== undefined) n = Math.max(min, n);
+    if (max !== undefined) n = Math.min(max, n);
+
+    const formatted = formatDisplay(n);
+    setText(formatted);
+    onChange(n);
+
+    // Restore caret to "after the Nth digit" in the freshly-formatted string
+    // so live comma insertion doesn't jump the cursor to the end.
+    requestAnimationFrame(() => {
+      const input = inputRef.current;
+      if (!input) return;
+      let pos = formatted.length;
+      let count = 0;
+      for (let i = 0; i < formatted.length; i++) {
+        if (count === digitsBeforeCaret) {
+          pos = i;
+          break;
+        }
+        if (/\d/.test(formatted[i])) count++;
+      }
+      input.setSelectionRange(pos, pos);
+    });
   };
 
   const handleBlur = () => {
     setFocused(false);
-    const parsed = parseRaw(text);
-    if (parsed === null) {
+    if (text.trim() === "") {
       setText(formatDisplay(value));
-    } else {
-      let next = parsed;
-      if (min !== undefined) next = Math.max(min, next);
-      if (max !== undefined) next = Math.min(max, next);
-      onChange(next);
-      setText(formatDisplay(next));
     }
+  };
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    setFocused(true);
+    setText(formatDisplay(value));
+    window.setTimeout(() => e.target.select(), 0);
   };
 
   return (
@@ -79,19 +102,15 @@ export function CurrencyField({
           $
         </span>
         <input
+          ref={inputRef}
           id={id}
           type="text"
           inputMode="numeric"
           autoComplete="off"
           className="field-input pl-7 tabular-nums"
-          value={focused ? text : formatDisplay(value)}
-          onFocus={(e) => {
-            setFocused(true);
-            // Show raw digits while editing so the user can position the cursor naturally.
-            setText(String(value));
-            window.setTimeout(() => e.target.select(), 0);
-          }}
-          onChange={(e) => handleChange(e.target.value)}
+          value={text}
+          onFocus={handleFocus}
+          onChange={handleChange}
           onBlur={handleBlur}
         />
       </div>

@@ -20,13 +20,24 @@ interface Props {
   onRemove?: () => void;
 }
 
-const SALARY_PRESETS = (current: number) => [
-  { label: "Same", value: Math.round(current) },
-  { label: "+10%", value: Math.round(current * 1.1) },
-  { label: "+20%", value: Math.round(current * 1.2) },
-  { label: "+30%", value: Math.round(current * 1.3) },
-  { label: "+50%", value: Math.round(current * 1.5) },
-];
+const SHORT_USD = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 0,
+});
+
+const SALARY_PRESETS = (current: number) => {
+  const make = (label: string, multiplier: number) => {
+    const value = Math.round(current * multiplier);
+    return { label: `${label} · $${SHORT_USD.format(value)}`, value };
+  };
+  return [
+    make("Same", 1),
+    make("+10%", 1.1),
+    make("+20%", 1.2),
+    make("+30%", 1.3),
+    make("+50%", 1.5),
+  ];
+};
 
 const TUITION_PRESETS = [
   { label: "MSU Broad EMBA ($89k)", value: 89000 },
